@@ -1,0 +1,107 @@
+一、命名与代码风格规范
+1.1 命名空间规范
+规则 1：所有GBB模型插件代码必须使用 GBB_BEGIN_NAMESPACE 和 GBB_END_NAMESPACE 宏包裹命名空间。
+规则 2：模型类必须定义在 namespace agent 命名空间下。
+规则 3：类名、文件名、命名空间必须保持统一，确保注册类名、头文件名、模型类名和工程源文件一致。
+1.2 类命名与继承规范
+规则 4：生成的GBB模型类必须继承 gbb::agent::EntitySimModel。
+规则 5：模型类构造函数中必须调用 EntitySimModel("ModelName") 设置模型名称。
+规则 6：模型类构造函数中必须调用 setParallelEntity(true/false) 明确指定是否启用并行实体处理。
+1.3 代码注释与标记规范
+规则 7：生成代码必须有清晰注释，说明代码功能、参数和返回值。
+规则 8：关键自动生成区域必须有明确标记（如 AUTO-GENERATED BEGIN/END），便于识别和维护。
+规则 9：用户自定义代码区域不得被重复生成覆盖，必须保留用户修改。
+二、模型类生命周期函数规范
+2.1 必须实现的生命周期函数
+模型类应根据需要实现以下生命周期函数：
+构造函数
+析构函数（建议 override）
+initialize() —— 初始化函数
+warmUp() —— 预热函数
+loopStarted(const TimeContext&) —— 循环开始
+beforeStep(const TimeContext&) —— 步进前
+stepReady(gbb::Entity&) const —— 步进准备检查
+step(const TimeContext&, gbb::Entity&) —— 主步进函数
+afterStep(const TimeContext&) —— 步进后
+loopDestroyed() —— 循环销毁
+2.2 实体事件函数
+必须实现的实体事件回调函数：
+entitiesExisted(...) —— 实体已存在事件
+entityAdded(...) —— 实体添加事件
+entityRemoving(...) —— 实体移除中事件
+entityRemoved(...) —— 实体已移除事件
+2.3 数据变更函数
+必须实现的数据变更回调函数：
+dataChanged(EntityId, DescriptorType, CommitterIndex) —— 实体描述子变更
+singletonDataChanged(DescriptorType, CommitterIndex) —— 单例描述子变更
+规则 10：所有生命周期函数必须按GBB调度语义生成代码，不得违背框架执行顺序。
+三、黑板数据读写规范
+3.1 描述子读取规范
+规则 11：实体描述子读取必须使用 entity.get() 或 GBBAccessor::get(id)。 规则 12：可选描述子必须使用 tryGet(id) 处理，避免未初始化异常。 规则 13：单例描述子读取使用 getSingleton() 或 tryGetSingleton()。 规则 14：读取前必须自动判断描述子是否存在、是否初始化、是否已发布。 规则 15：必须支持将GBB描述子字段映射到模型输入结构，支持protobuf嵌套字段、repeated字段、枚举字段转换。 规则 16：必须支持默认值、单位换算、坐标系转换和时间字段转换。 规则 17：缺失数据时应支持跳过、使用默认值或输出告警，不得导致崩溃。 3.2 描述子写入规范 规则 18：描述子写入必须使用 entity.modify()、modifyWith() 或 modifyInitial() 等接口。 规则 19：写入操作必须支持RAII自动提交模式，确保资源正确释放。 规则 20：必须支持 ModifyState::Revised 和 ModifyState::UnRevised 状态判断。 规则 21：实体创建后的描述子初始化必须使用 modifyInitial()。 规则 22：单例描述子修改使用对应单例修改接口。 规则 23：写入前必须判断是否需要更新，避免"修订未修改"的无意义操作。 规则 24：必须支持并发写冲突风险提示，同一描述子应配置唯一写入方。 规则 25：写入结果必须记录日志，异常必须有处理逻辑。 3.3 GBBAccessor接口规范 规则 26：对GBBAccessor的get/modify/modifyWith/modifyInitial等接口必须严格遵守SDK注释说明，不得凭空编造不存在的接口。 四、动态库加载规范 规则 27：动态库路径读取必须支持相对路径、绝对路径和环境变量配置。 规则 28：Linux环境下必须使用dlopen/dlsym/dlclose或等效机制加载动态库。 规则 29：必须根据README和demo工程识别导出函数，自动生成函数指针类型定义。 规则 30：必须自动生成初始化、反初始化、资源加载、参数设置函数调用。 规则 31：必须支持错误码转换和日志输出，加载失败、符号不存在、初始化失败等异常情况必须有明确处理。 规则 32：生命周期代码必须放置在合理位置： 动态库加载应在initialize()或warmUp()中执行 动态库释放在析构函数或loopDestroyed()中执行 严禁在高频step()中反复加载/释放动态库 五、模型函数调用规范 规则 33：必须识别模型初始化函数、执行函数、释放函数。 规则 34：必须识别输入结构体、输出结构体、参数结构体。 规则 35：必须自动生成GBB描述子到模型输入的转换代码，以及模型输出到GBB描述子的转换代码。 规则 36：必须支持模型调用耗时统计。 规则 37：必须支持返回码检查和错误日志记录。 规则 38：必须支持模型异常或失败时的降级处理逻辑。 规则 39：必须支持多实体逐个调用、批量调用或缓存调用模式。 规则 40：必须根据TimeContext::stepSecond()、simulatedSecond()等时间上下文传递仿真时间。 规则 41：必须支持函数调用线程安全配置和并发限制。 六、消息发布订阅规范 规则 42：消息发布使用 publishMessage()。 规则 43：消息订阅使用 subscribeMessage()。 规则 44：消息监听使用 listenMessage()。 规则 45：描述子消息发布使用 publishDescriptorAsMessage()。 规则 46：描述子消息订阅使用 subscribeDescriptorAsMessage()。 规则 47：单例消息发布/订阅使用 publishSingletonAsMessage() 和 subscribeSingletonAsMessage()。 规则 48：必须支持自动生成消息构建lambda函数。 规则 49：必须支持消息字段映射、校验和默认值设置。 规则 50：必须支持订阅号保存和取消订阅功能。 规则 51：必须根据周期一致性要求选择subscribeMessage或listenMessage。 规则 52：必须支持并发回调风险提示和自提交过滤。 七、事件监听规范 规则 53：事件监听注册必须在initialize()中通过onDataChanged()完成。 规则 54：必须支持监听实体描述子变更、单例描述子变更。 规则 55：必须支持监听实体创建、删除、准备完成等事件。 规则 56：必须支持过滤自身提交的变更，例如判断 who == committerIndex()。 规则 57：回调必须返回 gbb::ObserveState::KeepOn 或取消监听状态。 规则 58：回调中应避免长时间阻塞，避免影响仿真调度。 规则 59：必须提供回调线程安全提示。 规则 60：支持事件触发后更新本地缓存、触发模型重新初始化或发送消息。 八、实体创建销毁规范 规则 61：实体创建使用 createEntity(EntityType, EntityCreationCode)。 规则 62：支持指定实体ID创建 createEntityWithWantedId(...)。 规则 63：支持ECS实体创建 createECSEntity(...)。 规则 64：创建后必须调用 modifyInitial() 初始化必要描述子。 规则 65：实体初始化完成后必须调用 setEntityReady(id) 发布实体。 规则 66：实体删除使用 deleteEntity(EntityId, EntityRemovalCode)。 规则 67：必须支持创建和删除原因码配置。 规则 68：必须支持实体ready状态、描述子must initialize状态检查。 规则 69：必须支持创建失败、初始化失败、发布失败和删除失败的异常处理。 规则 70：必须支持实体生命周期日志记录。 九、插件注册规范 规则 71：插件注册文件(agentregister.cpp)必须符合GBB插件示例风格。 规则 72：注册类名、头文件名、模型类名和工程源文件必须保持一致。 规则 73：插件注册应能被GBB插件框架正确识别和加载。 十、工程文件规范 10.1 Qt qmake工程规范 规则 74：工程必须采用Qt qmake .pro格式。 规则 75：.pro文件中必须支持公共配置引用，如 include($$PWD/../../simmodel-config.pri)。 规则 76：必须包含插件注册文件 SOURCES += agentregister.cpp。 规则 77：必须包含源文件列表 include(src.pri)。 规则 78：支持HEADERS +=、SOURCES +=自动追加生成文件。 规则 79：支持Qt模块配置，如 QT += core network 等可选模块。 规则 80：必须配置SDK include path、library path、运行库path。 10.2 工程文件修改规范 规则 81：.pro文件中自动加入必要SOURCES、include(src.pri)、Qt模块、宏定义。 规则 82：src.pri中自动加入生成的HEADERS和SOURCES。 规则 83：自动加入模型动态库依赖路径和链接参数。 规则 84：自动加入SDK include path和library path。 规则 85：修改前必须保持原有注释和格式。 规则 86：修改前必须生成差异预览，用户确认后方可写入。 规则 87：必须支持回滚修改。 十一、代码质量规范 11.1 正确性要求 规则 88：生成代码必须通过语法检查。 规则 89：生成工程必须能完成qmake配置、编译和链接。 规则 90：动态库加载失败时必须输出明确错误信息。 规则 91：模型函数调用必须符合README和demo工程调用顺序。 规则 92：GBB黑板读写必须符合SDK接口规范。 规则 93：实体和描述子访问必须避免未初始化、未发布和不存在导致的异常。 规则 94：并发场景必须避免明显死锁和写冲突。 11.2 可维护性要求 规则 95：日志信息必须包含模型名、实体ID、函数名、错误码。 规则 96：复杂字段映射必须生成独立函数，避免代码臃肿。 规则 97：动态库适配层与GBB业务层必须分离，保持架构清晰。 规则 98：必须支持重复生成和增量修改。 11.3 安全性要求 规则 99：不得在生成代码中硬编码敏感密钥。 规则 100：动态库路径必须可配置，不得写死。 规则 101：文件写入前必须进行路径合法性检查。 规则 102：插件不得未经用户确认自动覆盖工程关键文件。 规则 103：生成任务日志必须避免泄漏敏感数据。 11.4 性能要求 规则 104：工程扫描应在可接受时间内完成。 规则 105：单次代码生成应支持流式输出。 规则 106：常规插件封装代码生成应在数分钟内完成。 规则 107：模型调用代码必须避免每个Tick重复加载动态库。 规则 108：模型动态库应在initialize()或warmUp()阶段加载，在析构或loopDestroyed()中释放。 十二、关键约束与注意事项 约束 1：生成代码必须以GBB SDK实际接口为准，不得凭空编造不存在的接口。 约束 2：对GBBAccessor的get/modify/modifyWith/modifyInitial等接口应严格遵守SDK注释说明。 约束 3：对EntitySimModel生命周期函数应按GBB调度语义生成代码。 约束 4：在并行step()中应避免跨实体无序持有多个可修订对象。 约束 5：对消息回调应注意阻塞和并发风险。 约束 6：动态库加载和模型初始化不得放在高频step()中反复执行。 约束 7：用户自定义代码区域不得被二次生成覆盖。 约束 8：所有工程文件修改应先展示差异，确认后写入。 约束 9：私有模型服务和知识库应部署在局域网或内网环境，避免敏感资料外泄。 十三、附录：典型代码框架示例 13.1 典型模型类头文件框架 #pragma once
+#include <gbb/agent/entitysimmodel.h>
+#include "xxxadapter.h"
+GBB_BEGIN_NAMESPACE
+namespace agent {
+class XxxModel : public EntitySimModel {
+public:
+    XxxModel();
+    ~XxxModel() override;
+bool stepReady(gbb::Entity& entity) const override;
+bool beforeStep(const TimeContext& ctx) override;
+StepResult step(const TimeContext& ctx, gbb::Entity& entity) override;
+void afterStep(const TimeContext& ctx) override;
+protected:
+    void initialize() override;
+    void warmUp() override;
+    void loopStarted(const TimeContext& ctx) override;
+    void loopDestroyed() override;
+// 实体事件
+void entitiesExisted(...) override;
+void entityAdded(...) override;
+void entityRemoving(...) override;
+void entityRemoved(...) override;
+
+// 数据变更
+void dataChanged(EntityId, DescriptorType, CommitterIndex) override;
+void singletonDataChanged(DescriptorType, CommitterIndex) override;
+};
+} // namespace agent
+GBB_END_NAMESPACE
+13.2 典型黑板读写框架
+StepResult XxxModel::step(const TimeContext& ctx, gbb::Entity& entity) {
+    auto inputDesc = entity.get();     if (!inputDesc) {         return Done;     }
+ModelInput input;
+// TODO: 根据README和demo工程生成字段映射
+// input.xxx = inputDesc->xxx();
+
+ModelOutput output;
+if (!m_adapter.run(input, &output, ctx.stepSecond())) {
+    return Done;
+}
+
+if (auto outDesc = entity.modify<OutputDescriptor>()) {
+    // TODO: 根据模型输出生成字段映射
+    // outDesc->set_xxx(output.xxx);
+}
+
+return Done;
+}
+13.3 典型事件监听框架
+void XxxModel::initialize() {
+    onDataChanged([this](EntityId id,          const InputDescriptor& data, CommitterIndex who) {         if (who == committerIndex()) {             return gbb::ObserveState::KeepOn;         }         // TODO: 处理外部数据变化         return gbb::ObserveState::KeepOn;     });
+subscribeMessage<SomeMessage>([this](const SomeMessage& msg) {
+    // TODO: 按周期一致性要求处理消息
+});
+}
+void XxxModel::afterStep(const TimeContext& ctx) {
+    publishMessage([&](auto& msg) {         // TODO: 填充消息字段         return BuildState::Done;     }); } 13.4 典型实体创建框架 EntityId XxxModel::createSomeEntity() {     auto id = createEntity(bb::EntityType::SomeEntityType);
+modifyInitial<SomeDescriptor>(id, [](auto& desc) {
+    // TODO: 初始化描述子
+});
+
+if (!setEntityReady(id)) {
+    LOG(WARNING) << "failed to set entity ready: " << id;
+}
+
+return id;
+}
