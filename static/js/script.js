@@ -39,6 +39,36 @@ class AILearningAssistant {
         this.temperatureSlider.addEventListener('input', () => {
             this.updateTemperatureValue();
         });
+
+        // 意图预测事件
+        const intentBtn = document.getElementById('intentButton');
+        const intentInput = document.getElementById('intentInput');
+        const intentResult = document.getElementById('intentResult');
+        intentBtn.addEventListener('click', async () => {
+            const text = intentInput.value.trim();
+            if (!text) return;
+            intentBtn.disabled = true;
+            intentResult.textContent = '预测中...';
+            try {
+                const resp = await fetch('/api/intent/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                const data = await resp.json();
+                if (!resp.ok) throw new Error(data.error || '请求失败');
+                let html = `<strong>预测类别：</strong> ${data.label}`;
+                if (data.topk) {
+                    html += '<br><strong>Top-5概率：</strong> ';
+                    html += '<ul style="margin-top: 0.5rem">' + data.topk.map(it => `<li>${it.label}: ${(it.prob * 100).toFixed(1)}%</li>`).join('') + '</ul>';
+                }
+                intentResult.innerHTML = html;
+            } catch (err) {
+                intentResult.textContent = `错误：${err.message}`;
+            } finally {
+                intentBtn.disabled = false;
+            }
+        });
     }
     
     setupAutoResize() {

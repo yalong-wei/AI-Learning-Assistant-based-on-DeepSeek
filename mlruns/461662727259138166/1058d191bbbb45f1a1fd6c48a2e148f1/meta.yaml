@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/xiaoylong/CodeBuddy/20251025181810/mlruns/461662727259138166/1058d191bbbb45f1a1fd6c48a2e148f1/artifacts
+end_time: 1761556348962
+entry_point_name: ''
+experiment_id: '461662727259138166'
+lifecycle_stage: active
+run_id: 1058d191bbbb45f1a1fd6c48a2e148f1
+run_name: intent_autosample_e9f41a8f
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1761556345736
+status: 3
+tags: []
+user_id: xiaoylong

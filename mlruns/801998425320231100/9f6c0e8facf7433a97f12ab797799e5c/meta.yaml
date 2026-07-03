@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/xiaoylong/CodeBuddy/20251025181810/mlruns/801998425320231100/9f6c0e8facf7433a97f12ab797799e5c/artifacts
+end_time: 1761557030416
+entry_point_name: ''
+experiment_id: '801998425320231100'
+lifecycle_stage: active
+run_id: 9f6c0e8facf7433a97f12ab797799e5c
+run_name: casual-rat-889
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1761557027833
+status: 3
+tags: []
+user_id: xiaoylong

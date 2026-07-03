@@ -77,6 +77,22 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- 意图预测模块 -->
+                <div class="input-container" style="margin-top: 1rem;">
+                    <div class="input-wrapper">
+                        <input 
+                            id="intentInput"
+                            type="text"
+                            placeholder="输入一句话进行意图预测（例如：请给出sklearn逻辑回归示例）"
+                            style="flex: 1; border: 1px solid #ced4da; border-radius: 12px; padding: 0.8rem 1rem;"
+                        />
+                        <button id="intentButton" class="send-button" title="Predict intent">
+                            <i class="fas fa-brain"></i>
+                        </button>
+                    </div>
+                    <div id="intentResult" style="margin-top: 0.75rem; color: #495057;"></div>
+                </div>
             </div>
         </main>
 

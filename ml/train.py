@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classification_report
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 
@@ -178,7 +178,11 @@ def train_and_log(
         mlflow.set_experiment(experiment_name)
         mlflow.set_tag("tracking", "local")
 
-    with mlflow.start_run(run_name=run_name, nested=True):
+    with mlflow.start_run(run_name=run_name):
+        # dataset tags inside run
+        mlflow.set_tag("dataset_version", sha_short(json.dumps(dataframe.head(5).to_dict(), ensure_ascii=False)))
+        mlflow.set_tag("dataset_rows", str(len(dataframe)))
+
         mlflow.log_params(
             {
                 "model": "LogisticRegression",
@@ -206,6 +210,31 @@ def train_and_log(
         accuracy = accuracy_score(y_test, predictions)
         f1_macro = f1_score(y_test, predictions, average="macro")
         mlflow.log_metrics({"accuracy": accuracy, "f1_macro": f1_macro})
+
+        # evaluation artifacts
+        import tempfile, pathlib
+        tmpdir = tempfile.mkdtemp(prefix="mlflow_artifacts_")
+        # confusion matrix
+        cm = confusion_matrix(y_test, predictions, labels=sorted(set(labels)))
+        pd.DataFrame(cm, index=sorted(set(labels)), columns=sorted(set(labels))).to_csv(os.path.join(tmpdir, "confusion_matrix.csv"))
+        # classification report
+        report = classification_report(y_test, predictions, output_dict=True)
+        with open(os.path.join(tmpdir, "classification_report.json"), "w", encoding="utf-8") as f:
+            json.dump(report, f, ensure_ascii=False, indent=2)
+        # misclassified samples (up to 100)
+        mis_rows = []
+        for t, p, x in zip(y_test, predictions, X_test):
+            if t != p:
+                mis_rows.append({"text": x, "true": t, "pred": p})
+            if len(mis_rows) >= 100:
+                break
+        if mis_rows:
+            pd.DataFrame(mis_rows).to_csv(os.path.join(tmpdir, "misclassified_samples.csv"), index=False)
+        # log files
+        for fname in ["confusion_matrix.csv", "classification_report.json", "misclassified_samples.csv"]:
+            fpath = os.path.join(tmpdir, fname)
+            if os.path.exists(fpath):
+                mlflow.log_artifact(fpath)
 
         # add input_example and signature for better model registry
         input_example = pd.DataFrame({"text": X_test[:3]})

@@ -18,6 +18,9 @@ from flask import (
 )
 from openai import OpenAI
 from flask.typing import ResponseReturnValue
+import mlflow
+import mlflow.sklearn
+import numpy as np
 
 # 加载环境变量
 load_dotenv()
@@ -27,6 +30,25 @@ logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+
+# 意图分类模型（MLflow加载，按需缓存）
+_intent_model = None
+
+
+def get_intent_model():
+    global _intent_model
+    if _intent_model is not None:
+        return _intent_model
+    model_uri = os.getenv("MODEL_URI")
+    tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
+    if tracking_uri:
+        mlflow.set_tracking_uri(tracking_uri)
+    if not model_uri:
+        raise RuntimeError(
+            "MODEL_URI 未配置，无法加载训练模型。请设置环境变量，如 runs:/<run_id>/model 或 models:/intent-classifier/Production"
+        )
+    _intent_model = mlflow.sklearn.load_model(model_uri)
+    return _intent_model
 
 
 class DeepSeekClient:
@@ -98,6 +120,43 @@ except ValueError as exc:
 @app.route("/")
 def index() -> str:
     return render_template("index.html")
+
+
+@app.route("/api/intent/predict", methods=["POST"])
+def intent_predict() -> ResponseReturnValue:
+    try:
+        model = get_intent_model()
+    except Exception as exc:
+        return jsonify({"error": f"模型不可用: {str(exc)}"}), 500
+
+    data = request.get_json()
+    if not data or "text" not in data:
+        return jsonify({"error": "缺少text参数"}), 400
+
+    text = data["text"]
+    # pipeline 期望输入为文本列表
+    preds = model.predict([text])
+    result = {"label": preds[0]}
+
+    # 若支持 predict_proba，返回前5概率
+    if hasattr(model, "predict_proba"):
+        try:
+            probs = model.predict_proba([text])[0]
+            # 获取类别标签（按训练时的类顺序）
+            if hasattr(model, "classes_"):
+                classes = list(model.classes_)
+            else:
+                classes = []
+            topk = sorted(
+                zip(classes if classes else range(len(probs)), probs),
+                key=lambda x: x[1],
+                reverse=True,
+            )[:5]
+            result["topk"] = [{"label": str(c), "prob": float(p)} for c, p in topk]
+        except Exception:
+            pass
+
+    return jsonify(result), 200
 
 
 @app.route("/api/chat", methods=["POST"])

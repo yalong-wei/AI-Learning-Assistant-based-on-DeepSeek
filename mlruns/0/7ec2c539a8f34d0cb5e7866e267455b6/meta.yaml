@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/xiaoylong/CodeBuddy/20251025181810/mlruns/0/7ec2c539a8f34d0cb5e7866e267455b6/artifacts
+end_time: 1761556525161
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 7ec2c539a8f34d0cb5e7866e267455b6
+run_name: trusting-fly-714
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1761556525152
+status: 3
+tags: []
+user_id: xiaoylong

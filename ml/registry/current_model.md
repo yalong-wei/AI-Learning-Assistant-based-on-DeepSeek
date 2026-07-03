@@ -1,8 +1,8 @@
-# 当前上线模型
+# Current Production Model
 
-- 模型名称：待定
-- 数据版本：待定
-- 训练 run ID：待定
-- 指标：待补
-
-> 在完成 v1/v2 实验并选择最佳模型后，更新上述字段。
+- Name: intent-classifier
+- Stage: Production
+- URI: models:/intent-classifier/Production
+- Selection rationale: higher macro-F1 vs baseline; verified via MLflow artifacts (confusion_matrix.csv, classification_report.json)
+- Dataset version: aligned with DVC v2 (to be updated with actual DVC hash)
+- Code version: see MLflow tag `git_sha` in the Production run

@@ -1,0 +1,10 @@
+artifact_location: file:///Users/xiaoylong/CodeBuddy/20251025181810/mlruns/801998425320231100/models/m-84ef18f568e24e20824ce79b9cb5a8dd/artifacts
+creation_timestamp: 1761557027885
+experiment_id: '801998425320231100'
+last_updated_timestamp: 1761557030414
+model_id: m-84ef18f568e24e20824ce79b9cb5a8dd
+model_type: null
+name: model
+source_run_id: 8d11a9dffbb5435da2a777c415cfdec2
+status: 2
+status_message: null
